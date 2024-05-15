@@ -471,7 +471,10 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         final boolean isHalfOpen =
                 mDevicePosture == DevicePostureController.DEVICE_POSTURE_HALF_OPENED;
         final boolean isTabletop = isPortrait && isHalfOpen;
-        mOriginalGravity = mContext.getResources().getInteger(R.integer.volume_dialog_gravity);
+        int origGravity = mContext.getResources().getInteger(R.integer.volume_dialog_gravity);
+        if (mOriginalGravity != origGravity) {
+            mOriginalGravity = origGravity;
+        }
         if (!mShowActiveStreamOnly) {
             // Clear the pre-defined gravity for left or right,
             // this is handled by mVolumePanelOnLeft
@@ -479,8 +482,12 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
             mOriginalGravity |= mVolumePanelOnLeft ? Gravity.LEFT : Gravity.RIGHT;
         }
         int gravity = isTabletop ? (mOriginalGravity | Gravity.TOP) : mOriginalGravity;
-        mWindowGravity = Gravity.getAbsoluteGravity(gravity,
-                mContext.getResources().getConfiguration().getLayoutDirection());
+        int windowGravity = Gravity.getAbsoluteGravity(gravity,
+                    mContext.getResources().getConfiguration().getLayoutDirection());
+        if (mWindowGravity != windowGravity) {
+            mWindowGravity = windowGravity;
+        }
+        setGraVityToLeft();
     }
 
     @VisibleForTesting int getWindowGravity() {
@@ -599,6 +606,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
 
     // Helper to set gravity.
     private void setGravity(ViewGroup viewGroup, int gravity) {
+        if (viewGroup == null) return;
         if (viewGroup instanceof LinearLayout) {
             ((LinearLayout) viewGroup).setGravity(gravity);
         }
@@ -606,6 +614,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
 
     // Helper to set layout gravity.
     private void setLayoutGravity(ViewGroup viewGroup, int gravity) {
+        if (viewGroup == null) return;
         if (viewGroup != null) {
             Object obj = viewGroup.getLayoutParams();
             if (obj instanceof FrameLayout.LayoutParams) {
@@ -805,35 +814,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         mAppVolumeView = mDialog.findViewById(R.id.app_volume_container);
         mAppVolumeIcon = mDialog.findViewById(R.id.app_volume);
 
-        if (isWindowGravityLeft()) {
-            ViewGroup container = mDialog.findViewById(R.id.volume_dialog_container);
-            setGravity(container, Gravity.LEFT);
-
-            setGravity(mDialogView, Gravity.LEFT);
-
-            setGravity((ViewGroup) mTopContainer, Gravity.LEFT);
-
-            setLayoutGravity(mRingerDrawerNewSelectionBg, Gravity.BOTTOM | Gravity.LEFT);
-
-            setLayoutGravity(mSelectedRingerContainer, Gravity.BOTTOM | Gravity.LEFT);
-
-            setGravity(mRinger, Gravity.LEFT);
-
-            setGravity(mDialogRowsViewContainer, Gravity.LEFT);
-
-            setGravity(mODICaptionsView, Gravity.LEFT);
-
-            setGravity(mSettingsView, Gravity.LEFT);
-            setLayoutGravity(mSettingsView, Gravity.LEFT);
-
-            setGravity(mExpandRowsView, Gravity.LEFT);
-            setLayoutGravity(mExpandRowsView, Gravity.LEFT);
-
-            setGravity(mAppVolumeView, Gravity.LEFT);
-            setLayoutGravity(mAppVolumeView, Gravity.LEFT);
-
-            mExpandRows.setRotation(-90);
-        }
+        setGraVityToLeft();
 
         if (mRows.isEmpty()) {
             if (!AudioSystem.isSingleVolume(mContext)) {
@@ -870,6 +851,40 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         initAppVolumeH();
         initODICaptionsH();
         mAccessibility.init();
+    }
+    
+    private void setGraVityToLeft() {
+        if (isWindowGravityLeft()) {
+            ViewGroup container = mDialog.findViewById(R.id.volume_dialog_container);
+            setGravity(container, Gravity.LEFT);
+
+            setGravity(mDialogView, Gravity.LEFT);
+
+            setGravity((ViewGroup) mTopContainer, Gravity.LEFT);
+
+            setLayoutGravity(mRingerDrawerNewSelectionBg, Gravity.BOTTOM | Gravity.LEFT);
+
+            setLayoutGravity(mSelectedRingerContainer, Gravity.BOTTOM | Gravity.LEFT);
+
+            setGravity(mRinger, Gravity.LEFT);
+
+            setGravity(mDialogRowsViewContainer, Gravity.LEFT);
+
+            setGravity(mODICaptionsView, Gravity.LEFT);
+
+            setGravity(mSettingsView, Gravity.LEFT);
+            setLayoutGravity(mSettingsView, Gravity.LEFT);
+
+            setGravity(mExpandRowsView, Gravity.LEFT);
+            setLayoutGravity(mExpandRowsView, Gravity.LEFT);
+
+            setGravity(mAppVolumeView, Gravity.LEFT);
+            setLayoutGravity(mAppVolumeView, Gravity.LEFT);
+            
+            if (mExpandRows != null) {
+                mExpandRows.setRotation(-90);
+            }
+        }
     }
 
     private boolean isWindowGravityLeft() {
@@ -2978,6 +2993,12 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         public boolean dispatchTouchEvent(@NonNull MotionEvent ev) {
             rescheduleTimeoutH();
             return super.dispatchTouchEvent(ev);
+        }
+        
+        @Override 
+        public void show() {
+            adjustPositionOnScreen();
+            super.show();
         }
 
         @Override
